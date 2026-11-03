@@ -1,0 +1,322 @@
+# Optuna-search config for algorithms/run_optuna_search.py.
+#
+# Each trial samples one enabled optimizer and that optimizer's search-space
+# parameters, evaluates all resolved prompts, and reports the mean final metric
+# to Optuna. Use optuna_schedule.yaml for multiple optimizer-objective studies.
+
+# Prompts evaluated by each Optuna trial are sampled from optuna.prompt_source.
+# To use explicit prompts instead, set optuna.prompt_source.type: "config" and
+# add selected_prompts here.
+
+# Prompts used in the paper.
+selected_prompts:  # Explicit prompts evaluated by every trial when optuna.prompt_source.type is config
+  - "a phoenix flying above water!! intricated detailed. japanese detailed. biotechnology"
+  - "lucky luck in the style of arcane league of legends"
+  - "a beautiful photo of a middle - aged bionic male cyborg, cyberpunk, circuit boards, electronic components, integrated vr headset, augmented vision, volumetric light, photography, dynamic lighting, color, intricate, extremely detailed, photorealistic, stunning, unreal engine 5"
+  - "tracer game character, in yellow bikini, blonde hair, black eyes, hands free, against the background of the jungle full height"
+  - "happy teddy bear wearing a backpack going for a walk. children's drawing."
+  - "formula of happiness, highly detailed, 8 k, masterpiece, super resolution."
+  - "book cover for warrior cats by wayne mcloughlin, backlighting"
+  - "a closeup photorealistic photograph of bob ross working on a canvas painting of iron man. mountain scape. film still, vibrant colors. this 4 k hd image is trending on artstation, featured on behance, well - rendered, extra crisp, features intricate detail, epic composition and the style of unreal engine."
+  - "a polaroid photograph of a horten ho 2 2 9"
+  - "new anime otome game characters, detailed"
+
+# Select which optimizers Optuna can sample. If more than one is enabled, the
+# optimizer itself becomes a categorical trial parameter.
+test_adam: false  # Allow Optuna to sample the adam optimizer
+test_ga: false  # Allow Optuna to sample the ga optimizer
+test_cmaes: false  # Allow Optuna to sample the cmaes optimizer
+test_random_sampler: false  # Allow Optuna to sample the random_sampler optimizer
+test_zero_order: true  # Allow Optuna to sample the zero_order optimizer
+test_snes: false  # Allow Optuna to sample the snes optimizer
+test_cosyne: false  # Allow Optuna to sample the cosyne optimizer
+
+# General parameters (shared comments from config_run_experiments.yaml)
+seed: 42  # Default seed value for reproducibility
+cuda: 0  # GPU device ID to use (e.g., 0 for first GPU); falls back to CPU if unavailable
+aesthetic_predictor: 2  # 0: Simulacra, 1: LAION V1, 2: LAION V2
+num_inference_steps: 50  # Diffusion inference steps during image generation
+batch_size: 8  # Number of candidates/images to generate and score at once for CMA-ES/GA/zero_order/random_sampler
+guidance_scale: 7.5  # Classifier-free guidance scale (0 means disabled)
+height: 512  # Generated image height (pixels)
+width: 512  # Generated image width (pixels)
+aesthetic_score_weight: 0.0  # Weight for aesthetic score in combined fitness
+clip_score_weight: 0.0  # Weight for CLIP score in combined fitness
+image_reward_score_weight: 1.0  # Weight for ImageReward score in combined fitness
+hpsv2_score_weight: 0.0  # Weight for HPSv2 score in combined fitness
+pickscore_score_weight: 0.0  # Weight for PickScore score in combined fitness
+max_aesthetic_score: 10  # Maximum aesthetic score (normalization)
+max_clip_score: 1.0  # Maximum CLIP score (normalization)
+max_image_reward_score: 1.0  # Approximate ImageReward normalization constant
+max_hpsv2_score: 1.0  # Approximate HPSv2 normalization constant
+max_pickscore_score: 1.0  # Approximate PickScore normalization constant
+image_reward_model: "ImageReward-v1.0"  # ImageReward checkpoint name; set to null to disable ImageReward calculation
+clip_model_name: "ViT-B/32"  # OpenAI CLIP model used for CLIP score and LAION aesthetic predictors
+hpsv2_version: "v2.1"  # HPSv2 checkpoint version; set to null to disable HPSv2 calculation
+pickscore_model: "yuvalkirstain/PickScore_v1"  # PickScore checkpoint name; set to null to disable PickScore calculation
+pickscore_processor: "laion/CLIP-ViT-H-14-laion2B-s32B-b79K"  # Processor backbone for PickScore; set to null to disable PickScore calculation
+evaluate_zero_weight_metrics: false  # Evaluate scorers with zero objective weight during trial runs
+optimization_target: "prompt_embeddings"  # "prompt_embeddings" or "latent_noise"
+model_id: "stable-diffusion-v1-5/stable-diffusion-v1-5"  # e.g., "stable-diffusion-v1-5/stable-diffusion-v1-5", "stabilityai/sdxl-turbo", "Efficient-Large-Model/Sana_Sprint_0.6B_1024px_diffusers", or "Efficient-Large-Model/Sana_1600M_1024px_diffusers"
+model_backend: "auto"  # "auto", "sd", "sdxl", "sana", or "sana_sprint"
+base_model_id: null  # Optional SD base pipeline when model_id is a component repo
+unet_model_id: null  # Optional SD UNet replacement repo
+unet_subfolder: "unet"  # Subfolder for replacement UNet weights
+torch_dtype: "float16"  # "auto", "float32", "float16", or "bfloat16"
+max_sequence_length: 256  # Sana text encoder token limit (ignored for SDXL)
+use_safetensors: true  # Prefer safetensors weights when available
+enable_gradient_checkpointing: false  # Lower memory use at the cost of speed
+enable_attention_slicing: false  # Lower VRAM use (slower)
+enable_vae_slicing: false  # Lower VRAM use for VAE
+enable_vae_tiling: false  # Useful for high-res decode on limited VRAM
+results_folder: "results_optuna_zeroorder_sd15_imagereward"  # Output directory for runs and artifacts
+
+# CMA-ES and GA common parameters
+num_generations: 30  # Number of generations
+pop_size: 16  # Population size
+
+# CMA-ES defaults (used if not overridden by optuna.search_space.cmaes)
+cmaes_variant: "sep"  # "cmaes", "sep", or "vd"
+sigma: 0.5  # Initial CMA-ES standard deviation
+save_gens: false  # Save individuals of each generation to the results folder
+
+# SNES defaults (used if not overridden by optuna.search_space.snes)
+snes_num_generations: 30  # SNES generations; null falls back to num_generations
+snes_pop_size: 16  # SNES population size; null falls back to pop_size
+snes_sigma: 0.5  # Initial SNES standard deviation
+snes_eta_mu: 1.0  # SNES mean learning rate
+snes_eta_sigma: null  # null uses the dimension-dependent SNES default
+
+# CoSyNE defaults (used if not overridden by optuna.search_space.cosyne)
+cosyne_num_generations: 15  # Number of CoSyNE generations
+cosyne_pop_size: 16  # Number of candidate networks per CoSyNE generation
+cosyne_init_range: 0.1  # Uniform initialization range around the initial target vector
+cosyne_mutation_probability: 0.3  # Probability of mutating each CoSyNE coordinate
+cosyne_mutation_scale: 0.3  # Standard deviation of CoSyNE Gaussian mutation noise
+cosyne_parent_count: 4  # Number of top candidates used as CoSyNE parents
+cosyne_offspring_count: 4  # Number of CoSyNE offspring generated per generation
+
+# Zero-order defaults (used if not overridden by optuna.search_space.zero_order)
+zero_order_num_generations: 30  # Number of pivot-update steps
+zero_order_pop_size: 16  # Gaussian candidates generated around each pivot
+zero_order_sigma: 0.5  # Standard deviation of candidate perturbations
+
+# Adam defaults (used if not overridden by optuna.search_space.adam)
+num_iterations: 240  # Number of iterations for the Adam optimization process
+adam_lr: 5e-3  # AdamW learning rate
+adam_weight_decay: 0  # AdamW weight decay
+adam_eps: 1e-8  # AdamW numerical stability constant
+adam_beta1: 0.9  # Exponential decay rate for the first moment estimate
+adam_beta2: 0.999  # Exponential decay rate for the second moment estimate
+adam_max_grad_norm: null  # Gradient norm clipping threshold for Adam; set to null or <=0 to disable
+
+# GA defaults (used if not overridden by optuna.search_space.ga)
+ga_mutation_std: 0.05  # Standard deviation of Gaussian mutation noise
+ga_elite_count: 1  # Number of top individuals copied unchanged to the next generation
+ga_crossover_operator: "uniform"  # "uniform", "arithmetic", or "blend" for continuous variables
+ga_crossover_rate: 0.8  # Per-dimension probability of inheriting from parent A during crossover
+ga_crossover_alpha: 0.5  # Parent-A weight for arithmetic crossover
+ga_blend_alpha: 0.5  # BLX-alpha expansion around parent values for blend crossover
+ga_mutation_operator: "gaussian"  # "gaussian", "cauchy", or "none"
+ga_mutation_rate: 0.1  # Per-dimension probability of applying mutation noise
+
+# Random sampler defaults (used if not overridden by optuna.search_space.random_sampler)
+num_images_to_generate: 20  # Number of random seeds/images to evaluate; latent_noise samples random latent vectors
+
+# Time limit in seconds (null -> use num_generations/num_iterations)
+time_limit_seconds: null  # Time limit in seconds, if null then it follows the number of generations/iterations
+
+optuna:  # Study settings and optimizer-specific parameter search spaces
+  n_trials: 30  # Number of additional trials to run in this invocation
+  direction: "maximize"  # Objective direction: maximize or minimize
+  metric: "auto"  # auto -> combined_score for Adam, max_fitness for population methods
+  study_name: "results_optuna_zeroorder_sd15_imagereward"  # Study identifier within the configured storage
+  storage: "sqlite:///results_optuna_zeroorder_sd15_imagereward/optuna.db"  # Optuna storage URL; null keeps the study in memory
+  load_if_exists: true  # Reuse an existing study with the same name and storage
+  catch_trial_errors: true  # Mark failed trials and continue the search instead of stopping
+  # Run the experiment YAML after tuning, using the best trial's optimizer
+  # and sampled parameters. Other settings come from the experiment YAML.
+  follow_up_experiment:  # Optional batch experiment using the best completed trial
+    enabled: true  # Run the follow-up batch experiment after tuning
+    config_path: "algorithms/config/tmp/config_run_experiments_zeroorder_sd15_imagereward.yaml"  # Experiment YAML path, relative to the working directory
+
+  sampler:  # Strategy used to propose trial parameters
+    name: "tpe"  # tpe or random
+    seed: 42  # Seed for reproducible parameter suggestions
+
+  prompt_source:  # Prompt selection; DiffusionDB settings apply only when type is diffusiondb
+    type: "config"  # config uses selected_prompts; diffusiondb samples dataset prompts
+    dataset: "poloclub/diffusiondb"  # Hugging Face dataset ID for DiffusionDB sampling
+    subset: "2m_random_1k"  # Dataset configuration/subset name; null uses the default
+    split: "train"  # Dataset split used for prompt sampling
+    count: 10  # Number of valid DiffusionDB prompts to sample
+    seed: 42  # Seed for reproducible DiffusionDB prompt sampling
+    streaming: false  # Stream and shuffle rows instead of loading the full dataset split
+    require_clip_tokenizable: true  # Skip prompts exceeding the CLIP token context length
+    clip_context_length: 77  # Maximum CLIP token count used when filtering sampled prompts
+
+  plots:  # Optuna visualization export settings
+    enabled: true  # true, false, or a list such as ["optimization_history", "slice"]
+    output_dir: "optuna_plots"  # Plot output directory relative to results_folder, unless absolute
+    include_plotlyjs: "cdn"  # Plotly JavaScript embedding option for exported HTML, e.g. cdn
+
+  # Supported parameter specs:
+  # - list -> categorical choices
+  # - {type: categorical, choices: [...]}
+  # - {type: float, low: ..., high: ..., log: true|false, step: null}
+  # - {type: int, low: ..., high: ..., log: true|false, step: 1}
+  search_space:  # Parameters sampled per optimizer; omitted parameters keep the defaults above
+    adam:  # Search space for adam; used only when test_adam is true
+      adam_lr:  # AdamW learning rate
+        type: "float"  # Distribution: float, int, or categorical
+        low: 3e-4  # Lower bound (inclusive)
+        high: 5e-3  # Upper bound (inclusive)
+        log: true  # Sample on a logarithmic scale
+      adam_weight_decay:  # AdamW weight decay
+        type: "categorical"  # Distribution: float, int, or categorical
+        choices: [0.0, 1e-6, 1e-4, 1e-3, 1e-2]  # Allowed categorical values
+      adam_beta1:  # Exponential decay rate for the first moment estimate
+        type: "float"  # Distribution: float, int, or categorical
+        low: 0.7  # Lower bound (inclusive)
+        high: 0.95  # Upper bound (inclusive)
+      adam_beta2:  # Exponential decay rate for the second moment estimate
+        type: "float"  # Distribution: float, int, or categorical
+        low: 0.9  # Lower bound (inclusive)
+        high: 0.999  # Upper bound (inclusive)
+      adam_eps:  # AdamW numerical stability constant
+        type: "float"  # Distribution: float, int, or categorical
+        low: 1e-8  # Lower bound (inclusive)
+        high: 1e-5  # Upper bound (inclusive)
+        log: true  # Sample on a logarithmic scale
+
+    ga:  # Search space for ga; used only when test_ga is true
+      # pop_size:
+      #   type: "int"
+      #   low: 10
+      #   high: 50
+      #   step: 10
+      ga_crossover_operator:  # "uniform", "arithmetic", or "blend" for continuous variables
+        type: "categorical"  # Distribution: float, int, or categorical
+        choices: ["uniform", "arithmetic", "blend"]  # Allowed categorical values
+      ga_mutation_std:  # Standard deviation of Gaussian mutation noise
+        type: "float"  # Distribution: float, int, or categorical
+        low: 0.05  # Lower bound (inclusive)
+        high: 1.0  # Upper bound (inclusive)
+        log: true  # Sample on a logarithmic scale
+      ga_mutation_operator:  # "gaussian", "cauchy", or "none"
+        type: "categorical"  # Distribution: float, int, or categorical
+        choices: ["gaussian", "cauchy"]  # Allowed categorical values
+      ga_mutation_rate:  # Per-dimension probability of applying mutation noise
+        type: "float"  # Distribution: float, int, or categorical
+        low: 0.05  # Lower bound (inclusive)
+        high: 0.6  # Upper bound (inclusive)
+      ga_crossover_rate:  # Per-dimension probability of inheriting from parent A during crossover
+        type: "float"  # Distribution: float, int, or categorical
+        low: 0.5  # Lower bound (inclusive)
+        high: 0.95  # Upper bound (inclusive)
+        depends_on:  # Sample this parameter only when the dependency matches
+          parameter: "ga_crossover_operator"  # Parameter controlling whether this setting is sampled
+          values: ["uniform"]  # Dependency values that enable this setting
+      ga_crossover_alpha:  # Parent-A weight for arithmetic crossover
+        type: "float"  # Distribution: float, int, or categorical
+        low: 0.1  # Lower bound (inclusive)
+        high: 0.9  # Upper bound (inclusive)
+        depends_on:  # Sample this parameter only when the dependency matches
+          parameter: "ga_crossover_operator"  # Parameter controlling whether this setting is sampled
+          values: ["arithmetic"]  # Dependency values that enable this setting
+      ga_blend_alpha:  # BLX-alpha expansion around parent values for blend crossover
+        type: "float"  # Distribution: float, int, or categorical
+        low: 0.0  # Lower bound (inclusive)
+        high: 1.0  # Upper bound (inclusive)
+        depends_on:  # Sample this parameter only when the dependency matches
+          parameter: "ga_crossover_operator"  # Parameter controlling whether this setting is sampled
+          values: ["blend"]  # Dependency values that enable this setting
+      ga_elite_count:  # Number of top individuals copied unchanged to the next generation
+        type: "int"  # Distribution: float, int, or categorical
+        low: 1  # Lower bound (inclusive)
+        high: 3  # Upper bound (inclusive)
+
+    cmaes:  # Search space for cmaes; used only when test_cmaes is true
+      # pop_size:
+      #   type: "int"
+      #   low: 10
+      #   high: 60
+      #   step: 10
+      sigma:  # Initial CMA-ES standard deviation
+        type: "float"  # Distribution: float, int, or categorical
+        low: 0.05  # Lower bound (inclusive)
+        high: 1.0  # Upper bound (inclusive)
+        log: true  # Sample on a logarithmic scale
+    snes:  # Search space for snes; used only when test_snes is true
+      # snes_num_generations:
+      #   type: "int"
+      #   low: 5
+      #   high: 50
+      #   step: 5
+      # snes_pop_size:
+      #   type: "int"
+      #   low: 8
+      #   high: 64
+      #   step: 8
+      snes_sigma:  # Initial SNES standard deviation
+        type: "float"  # Distribution: float, int, or categorical
+        low: 0.01  # Lower bound (inclusive)
+        high: 1.0  # Upper bound (inclusive)
+        log: true  # Sample on a logarithmic scale
+      snes_eta_mu:  # SNES mean learning rate
+        type: "float"  # Distribution: float, int, or categorical
+        low: 0.1  # Lower bound (inclusive)
+        high: 1.5  # Upper bound (inclusive)
+      snes_eta_sigma:  # null uses the dimension-dependent SNES default
+        type: "float"  # Distribution: float, int, or categorical
+        low: 0.001  # Lower bound (inclusive)
+        high: 0.1  # Upper bound (inclusive)
+        log: true  # Sample on a logarithmic scale
+    cosyne:  # Search space for cosyne; used only when test_cosyne is true
+      # Keep generations fixed when comparing trials so every trial has the same
+      # number of update steps. Enable population search only if unequal total
+      # image-evaluation budgets are acceptable.
+      # cosyne_pop_size:
+      #   type: "categorical"
+      #   choices: [8, 16, 32, 64]
+      cosyne_init_range:  # Uniform initialization range around the initial target vector
+        type: "float"  # Distribution: float, int, or categorical
+        low: 0.01  # Lower bound (inclusive)
+        high: 1.0  # Upper bound (inclusive)
+        log: true  # Sample on a logarithmic scale
+      cosyne_mutation_probability:  # Probability of mutating each CoSyNE coordinate
+        type: "float"  # Distribution: float, int, or categorical
+        low: 0.05  # Lower bound (inclusive)
+        high: 0.6  # Upper bound (inclusive)
+      cosyne_mutation_scale:  # Standard deviation of CoSyNE Gaussian mutation noise
+        type: "float"  # Distribution: float, int, or categorical
+        low: 0.01  # Lower bound (inclusive)
+        high: 1.0  # Upper bound (inclusive)
+        log: true  # Sample on a logarithmic scale
+      cosyne_parent_count:  # Number of top candidates used as CoSyNE parents
+        type: "int"  # Distribution: float, int, or categorical
+        low: 2  # Lower bound (inclusive)
+        high: 8  # Upper bound (inclusive)
+        step: 2  # Spacing between sampled values
+      cosyne_offspring_count:  # Number of CoSyNE offspring generated per generation
+        type: "int"  # Distribution: float, int, or categorical
+        low: 2  # Lower bound (inclusive)
+        high: 8  # Upper bound (inclusive)
+        step: 2  # Spacing between sampled values
+
+    zero_order:  # Search space for zero_order; used only when test_zero_order is true
+      # zero_order_num_generations:
+      #   type: "int"
+      #   low: 5
+      #   high: 50
+      #   step: 5
+      # zero_order_pop_size:
+      #   type: "int"
+      #   low: 8
+      #   high: 64
+      #   step: 8
+      zero_order_sigma:  # Standard deviation of candidate perturbations
+        type: "float"  # Distribution: float, int, or categorical
+        low: 0.01  # Lower bound (inclusive)
+        high: 1.0  # Upper bound (inclusive)
+        log: true  # Sample on a logarithmic scale

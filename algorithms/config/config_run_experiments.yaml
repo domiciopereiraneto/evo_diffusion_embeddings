@@ -1,0 +1,127 @@
+# Batch experiment config for algorithms/run_experiments.py.
+#
+# This file defines one optimizer/model/objective setup and the prompt subset to
+# run. For paper-scale runs, keep shared defaults here and place optimizer- or
+# objective-specific overrides in algorithms/config/experiments_schedule.yaml.
+"optimization_method": "snes" # "cmaes", "snes", "cosyne", "ga", "adam", "zero_order", or "random_sampler"
+
+# Prompt dataset parameters (used by run_experiments.py)
+seed_path: null  # Path to a file with seeds; if null, uses the 'seed' below
+seed: 42  # Default seed value for reproducibility
+prompt_dataset: "drawbench"  # Prompt source: "parti" or "drawbench"
+prompt_dataset_path: null  # Optional HF dataset override; defaults to nateraw/parti-prompts or sayakpaul/drawbench
+prompt_dataset_config: null  # Optional HF dataset config/subset name
+prompt_dataset_split: null  # Optional split override; defaults to train
+prompt_per_category: null  # Number of prompts sampled per category
+prompt_sample_seed: null  # Seed for prompt sampling from the dataset
+use_entire_dataset: true  # If true, use every prompt for each seed; overrides prompt_per_category and single_prompt_per_seed
+prompt_index_range: [0,200]  # Optional when use_entire_dataset is true: zero-based [start, end) slice, e.g. [0, 50]
+single_prompt_per_seed: false  # If true, ignore per-category sampling and pick one prompt from the full dataset using each run seed
+
+# General generation/scoring parameters
+cuda: 0  # GPU device ID to use (e.g., 0 for first GPU); falls back to CPU if unavailable
+aesthetic_predictor: 2  # 0: Simulacra, 1: LAION V1, 2: LAION V2
+num_inference_steps: 50  # Diffusion inference steps during image generation
+batch_size: 8  # Number of candidates/images to generate and score at once for CMA-ES/GA/zero_order/random_sampler
+guidance_scale: 7.5 # Classifier-free guidance scale (0 means disabled)
+height: 512  # Generated image height (pixels)
+width: 512  # Generated image width (pixels)
+aesthetic_score_weight: 0.0  # Weight for aesthetic score in combined fitness
+clip_score_weight: 1.0  # Weight for CLIP score in combined fitness
+image_reward_score_weight: 0.0  # Weight for ImageReward score in combined fitness
+hpsv2_score_weight: 0.0  # Weight for HPSv2 score in combined fitness
+pickscore_score_weight: 0.0  # Weight for PickScore score in combined fitness
+max_aesthetic_score: 1.0  # Maximum aesthetic score (normalization)
+max_clip_score: 1.0  # Maximum CLIP score (normalization)
+max_image_reward_score: 1.0  # Approximate ImageReward normalization constant
+max_hpsv2_score: 1.0  # Approximate HPSv2 normalization constant
+max_pickscore_score: 1.0  # Approximate PickScore normalization constant
+image_reward_model: "ImageReward-v1.0"  # ImageReward checkpoint name; set to null to disable ImageReward calculation
+clip_model_name: "ViT-B/32"  # OpenAI CLIP model used for CLIP score and LAION aesthetic predictors
+hpsv2_version: "v2.1"  # HPSv2 checkpoint version; set to null to disable HPSv2 calculation
+pickscore_model: "yuvalkirstain/PickScore_v1"  # PickScore checkpoint name; set to null to disable PickScore calculation
+pickscore_processor: "laion/CLIP-ViT-H-14-laion2B-s32B-b79K"  # Processor backbone for PickScore; set to null to disable PickScore calculation
+evaluate_zero_weight_metrics: true  # Evaluate extras from saved images after all experiment runs finish
+# Additional metrics to evaluate after the experiment when evaluate_zero_weight_metrics is true.
+# Weighted objective metrics are always evaluated. [] selects no extras;
+# null or an omitted list selects all metrics outside the objective.
+zero_weight_metrics:
+  #- aesthetic_score
+  #- clip_score
+  - image_reward_score
+  - hpsv2_score
+  #- pickscore_score
+optimization_target: "prompt_embeddings"  # "prompt_embeddings" or "latent_noise"
+resume_experiment: false  # Resume checkpointed runs when the configured total increases
+results_folder: "results_snes_sd15_clip_extended"  # Output directory for runs and artifacts
+
+# Diffusion model parameters
+model_id: "stable-diffusion-v1-5/stable-diffusion-v1-5"  # e.g., "stable-diffusion-v1-5/stable-diffusion-v1-5", "stabilityai/sdxl-turbo", "Efficient-Large-Model/Sana_Sprint_0.6B_1024px_diffusers", or "Efficient-Large-Model/Sana_1600M_1024px_diffusers"
+model_backend: "auto"  # "auto", "sd", "sdxl", "sana", or "sana_sprint"
+base_model_id: null  # Optional SD base pipeline when model_id is a component repo
+unet_model_id: null  # Optional SD UNet replacement repo
+unet_subfolder: "unet"  # Subfolder for replacement UNet weights
+torch_dtype: "float16"  # "auto", "float32", "float16", or "bfloat16"
+max_sequence_length: 256  # Sana text encoder token limit (ignored for SDXL)
+use_safetensors: true  # Prefer safetensors weights when available
+
+# Pipeline memory/performance options
+enable_gradient_checkpointing: false  # Lower memory use at the cost of speed
+enable_attention_slicing: false  # Lower VRAM use (slower)
+enable_vae_slicing: false  # Lower VRAM use for VAE
+enable_vae_tiling: false  # Useful for high-res decode on limited VRAM
+
+# CMA-ES and GA common parameters
+num_generations: 30 # Number of generations
+pop_size: 16  # Population size
+
+# CMA-ES specific parameters
+cmaes_variant: "sep"  # "cmaes", "sep", or "vd"
+sigma: 0.1  # Initial CMA-ES standard deviation
+save_gens: true # Save individuals of each generation to the results folder
+
+# SNES specific parameters (optional; fall back to the common values above)
+snes_num_generations: 70
+snes_pop_size: 16
+snes_sigma: 0.049397137495670984
+snes_eta_mu: 1.486094556430421
+snes_eta_sigma: 0.038079765727675935  # null uses the dimension-dependent SNES default
+
+# CoSyNE specific parameters
+cosyne_num_generations: 15
+cosyne_pop_size: 16
+cosyne_init_range: 0.6257387602872511
+cosyne_mutation_probability: 0.0547024960214017
+cosyne_mutation_scale: 0.023825548804153742
+cosyne_parent_count: 8
+cosyne_offspring_count: 6
+
+# Zero-order specific parameters
+zero_order_num_generations: 30  # Number of pivot-update steps
+zero_order_pop_size: 16  # Gaussian candidates generated around each pivot
+zero_order_sigma: 0.1  # Standard deviation of candidate perturbations
+
+# AdamW specific parameters (if selected)
+"num_iterations": 240  # Number of iterations for the Adam optimization process
+adam_lr: 0.0030225400571830714
+adam_weight_decay: 1.0e-06
+adam_beta1: 0.8225006084284342
+adam_beta2: 0.900534541220083
+adam_eps: 3.8565394686113476e-07
+"adam_max_grad_norm": null  # Gradient norm clipping threshold for Adam; set to null or <=0 to disable
+
+# GA specific parameters
+ga_mutation_std: 0.2516095508227438  # Standard deviation of Gaussian mutation noise
+ga_elite_count: 2  # Number of top individuals copied unchanged to the next generation
+ga_crossover_operator: "arithmetic"  # "uniform", "arithmetic", or "blend" for continuous variables
+ga_crossover_rate: 0.0  # Per-dimension probability of inheriting from parent A during crossover
+ga_crossover_alpha: 0.7238270661097619  # Parent-A weight for arithmetic crossover
+ga_blend_alpha: 0.0  # BLX-alpha expansion around parent values for blend crossover
+ga_mutation_operator: "gaussian"  # "gaussian", "cauchy", or "none"
+ga_mutation_rate: 0.19713783286468334  # Per-dimension probability of applying mutation noise
+
+# Random sampler specific parameters
+num_images_to_generate: 240  # Number of random seeds/images to evaluate; latent_noise samples random latent vectors
+
+# Time limit specification
+time_limit_seconds: null # Time limit in seconds, if null then it follows the number of generations/iterations

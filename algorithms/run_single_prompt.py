@@ -1,0 +1,47 @@
+#!/usr/bin/env python3
+"""Run one EIGO optimization job from algorithms/config/config_run_single_prompt.yaml.
+
+Use this entrypoint for quick single-prompt checks before launching larger
+scheduled experiments. For batched paper runs, use run_experiments.py together
+with experiments_schedule.py.
+"""
+
+import sys
+import os
+
+# Add the repository root so this script can import embedding_optimizer.py when executed from
+# the project root.
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, parent_dir)
+
+from embedding_optimizer import EmbeddingOptimizer
+import yaml
+
+config_path = "algorithms/config/config_run_single_prompt.yaml"
+
+# Load the full backend/optimizer configuration.
+with open(config_path, 'r') as file:
+    experimental_setup_parameters = yaml.safe_load(file)
+
+optimizer_engine = EmbeddingOptimizer(experimental_setup_parameters)
+
+print("Starting optimization using method:", experimental_setup_parameters["optimization_method"])
+
+if experimental_setup_parameters["optimization_method"] == "cmaes":
+    results_folder = optimizer_engine.run_cmaes_optimization()
+elif experimental_setup_parameters["optimization_method"] == "ga":
+    results_folder = optimizer_engine.run_ga_optimization()
+elif experimental_setup_parameters["optimization_method"] == "adam":
+    results_folder = optimizer_engine.run_adam_optimization()
+elif experimental_setup_parameters["optimization_method"] == "random_sampler":
+    results_folder = optimizer_engine.run_random_sampler_optimization()
+elif experimental_setup_parameters["optimization_method"] == "zero_order":
+    results_folder = optimizer_engine.run_zero_order_optimization()
+elif experimental_setup_parameters["optimization_method"] == "snes":
+    results_folder = optimizer_engine.run_snes_optimization()
+elif experimental_setup_parameters["optimization_method"] == "cosyne":
+    results_folder = optimizer_engine.run_cosyne_optimization()
+else:
+    raise ValueError(f"Unknown optimization method: {experimental_setup_parameters['optimization_method']}")
+
+print("Results saved in folder:", results_folder)
